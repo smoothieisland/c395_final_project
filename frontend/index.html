@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VibeMe — Find your next place</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="site-header__inner">
+      <h1 class="site-title">VibeMe</h1>
+      <p class="site-tagline">Tell us where & what you want — we'll find 5 places that fit.</p>
+    </div>
+  </header>
+
+  <main class="layout">
+    <!-- ============== SEARCH / FILTER FORM ============== -->
+    <aside class="panel panel--form">
+      <form id="search-form" class="search-form" novalidate>
+        <!-- LOCATION -->
+        <fieldset class="form-section">
+          <legend class="form-section__legend">Location</legend>
+
+          <label class="field">
+            <span class="field__label">City</span>
+            <input type="text" id="city" name="city" placeholder="Cambridge" required />
+          </label>
+
+          <label class="field">
+            <span class="field__label">Zip code</span>
+            <input type="text" id="zip" name="zip" placeholder="02138" required
+                   pattern="\d{5}" inputmode="numeric" maxlength="5" />
+          </label>
+        </fieldset>
+
+        <!-- BEDROOMS / BATHROOMS -->
+        <fieldset class="form-section">
+          <legend class="form-section__legend">Size</legend>
+
+          <div class="field-row">
+            <label class="field">
+              <span class="field__label">Min bedrooms</span>
+              <input type="number" id="min_bedrooms" min="0" max="10" value="1" />
+            </label>
+            <label class="field">
+              <span class="field__label">Max bedrooms</span>
+              <input type="number" id="max_bedrooms" min="0" max="10" value="3" />
+            </label>
+          </div>
+
+          <div class="field-row">
+            <label class="field">
+              <span class="field__label">Min bathrooms</span>
+              <input type="number" id="min_bathrooms" min="0" max="10" value="1" />
+            </label>
+            <label class="field">
+              <span class="field__label">Max bathrooms</span>
+              <input type="number" id="max_bathrooms" min="0" max="10" value="2" />
+            </label>
+          </div>
+
+          <div class="field-row">
+            <label class="field">
+              <span class="field__label">Preferred bedrooms</span>
+              <input type="number" id="bedrooms" min="0" max="10" value="2" />
+            </label>
+            <label class="field">
+              <span class="field__label">Preferred bathrooms</span>
+              <input type="number" id="bathrooms" min="0" max="10" value="1" />
+            </label>
+          </div>
+        </fieldset>
+
+        <!-- PETS -->
+        <fieldset class="form-section">
+          <legend class="form-section__legend">Pets</legend>
+          <label class="checkbox">
+            <input type="checkbox" id="require_cats_ok" />
+            <span>Must allow cats</span>
+          </label>
+          <label class="checkbox">
+            <input type="checkbox" id="require_dogs_ok" />
+            <span>Must allow dogs</span>
+          </label>
+        </fieldset>
+
+        <!-- LIFESTYLE -->
+        <fieldset class="form-section">
+          <legend class="form-section__legend">Lifestyle preferences</legend>
+          <p class="form-section__hint">
+            How important are these things nearby? Larger numbers = more nearby / shorter walk.
+          </p>
+
+          <div class="field-row">
+            <label class="field">
+              <span class="field__label">Cafés nearby</span>
+              <input type="number" id="cafes_nearby" min="0" value="5" />
+            </label>
+            <label class="field">
+              <span class="field__label">Min to closest café</span>
+              <input type="number" id="minutes_to_closest_cafe" min="0" value="3" />
+            </label>
+          </div>
+
+          <div class="field-row">
+            <label class="field">
+              <span class="field__label">Restaurants nearby</span>
+              <input type="number" id="restaurants_nearby" min="0" value="10" />
+            </label>
+            <label class="field">
+              <span class="field__label">Min to closest restaurant</span>
+              <input type="number" id="minutes_to_closest_restaurant" min="0" value="4" />
+            </label>
+          </div>
+
+          <div class="field-row">
+            <label class="field">
+              <span class="field__label">Shops nearby</span>
+              <input type="number" id="shops_nearby" min="0" value="6" />
+            </label>
+            <label class="field">
+              <span class="field__label">Parks nearby</span>
+              <input type="number" id="parks_nearby" min="0" value="2" />
+            </label>
+          </div>
+
+          <div class="field-row">
+            <label class="field">
+              <span class="field__label">Min to nearest bus stop</span>
+              <input type="number" id="minutes_to_nearest_bus_stop" min="0" value="2" />
+            </label>
+            <label class="field">
+              <span class="field__label">Min to nearest T station</span>
+              <input type="number" id="minutes_to_nearest_t_station" min="0" value="8" />
+            </label>
+          </div>
+        </fieldset>
+
+        <!-- HEALTH / SAFETY -->
+        <fieldset class="form-section">
+          <legend class="form-section__legend">Health & safety</legend>
+
+          <div class="field-row">
+            <label class="field">
+              <span class="field__label">Min to closest drugstore</span>
+              <input type="number" id="minutes_to_closest_drugstore" min="0" value="5" />
+            </label>
+            <label class="field">
+              <span class="field__label">Min to closest urgent care</span>
+              <input type="number" id="minutes_to_closest_urgent_care" min="0" value="12" />
+            </label>
+          </div>
+        </fieldset>
+
+        <button type="submit" class="btn btn--primary" id="search-btn">
+          Find 5 matches
+        </button>
+        <p class="form-status" id="form-status" aria-live="polite"></p>
+      </form>
+    </aside>
+
+    <!-- ============== RESULTS ============== -->
+    <section class="panel panel--results">
+      <div id="results-empty" class="results-empty">
+        <h2>Your matches will show up here.</h2>
+        <p>Fill out the form and click <strong>Find 5 matches</strong> to get started.</p>
+      </div>
+
+      <div id="results-loading" class="results-loading hidden">
+        <div class="spinner" aria-hidden="true"></div>
+        <p>Finding places that match your vibe…</p>
+      </div>
+
+      <div id="results-error" class="results-error hidden" role="alert"></div>
+
+      <div id="results-grid" class="results-grid hidden"></div>
+    </section>
+  </main>
+
+  <!-- ============== DETAIL MODAL ============== -->
+  <div id="detail-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal__backdrop" data-close-modal></div>
+    <div class="modal__content">
+      <button class="modal__close" data-close-modal aria-label="Close">&times;</button>
+      <div id="modal-body"></div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
