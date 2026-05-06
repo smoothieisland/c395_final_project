@@ -1,5 +1,119 @@
 document.addEventListener("DOMContentLoaded", () => {
+function render(items) {
+  grid.innerHTML = "";
 
+  if (!items || items.length === 0) {
+    setState("empty");
+    empty.textContent = "No matches found.";
+    return;
+  }
+
+  items.forEach((i, idx) => {
+    const div = document.createElement("div");
+    div.className = "card";
+
+    const imageUrl = makeImageUrl(i.Address, i.rank ?? idx);
+
+    div.innerHTML = `
+      <div style="position:relative;">
+        <img 
+          src="${imageUrl}" 
+          style="width:100%;height:180px;object-fit:cover;border-radius:10px;" 
+        />
+
+        ${
+          i.rank !== undefined
+            ? `<span style="
+                position:absolute;
+                top:8px;
+                left:8px;
+                background:black;
+                color:white;
+                padding:4px 8px;
+                border-radius:6px;
+                font-size:12px;
+              ">#${i.rank}</span>`
+            : ""
+        }
+      </div>
+
+      <h3 style="margin:10px 0 5px 0;">
+        ${i.Address || "Unknown address"}
+      </h3>
+
+      <p style="margin:0;color:#555;">
+        ${i.City || ""}
+      </p>
+
+      <p style="margin:6px 0;">
+        ${i["# Bedrooms"] ?? "—"} bd / ${i["# Bathrooms"] ?? "—"} ba
+      </p>
+
+      <p style="font-weight:600;">
+        $${i["Price per apartment"]
+          ? Number(i["Price per apartment"]).toLocaleString()
+          : "—"}
+      </p>
+    `;
+
+    div.addEventListener("click", () => openDetail(i));
+
+    grid.appendChild(div);
+  });
+}
+function openDetail(i) {
+  modalBody.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:10px;">
+
+      <h2>${i.Address}</h2>
+
+      <p><strong>City:</strong> ${i.City ?? "-"}</p>
+      <p><strong>Coordinates:</strong> ${i.Coordinates ?? "-"}</p>
+
+      <hr/>
+
+      <h3>Unit Info</h3>
+      <p><strong>Bedrooms:</strong> ${i["# Bedrooms"] ?? "-"}</p>
+      <p><strong>Bathrooms:</strong> ${i["# Bathrooms"] ?? "-"}</p>
+
+      <p><strong>Price:</strong> $${i["Price per apartment"] ?? "-"}</p>
+      <p><strong>Price / bedroom:</strong> ${i["Price per bedroom"] ?? "-"}</p>
+
+      <hr/>
+
+      <h3>Pet Policy</h3>
+      <p><strong>Cats ok:</strong> ${i["Cats ok"] ? "Yes" : "No"}</p>
+      <p><strong>Dogs ok:</strong> ${i["Dogs ok"] ? "Yes" : "No"}</p>
+
+      <hr/>
+
+      <h3>Lifestyle Features</h3>
+
+      <p><strong>Cafes nearby:</strong> ${i["# cafes nearby"] ?? "-"}</p>
+      <p><strong>Minutes to closest cafe:</strong> ${i["# minutes to closest cafe"] ?? "-"}</p>
+
+      <p><strong>Restaurants nearby:</strong> ${i["# restaurants nearby"] ?? "-"}</p>
+      <p><strong>Minutes to closest restaurant:</strong> ${i["# minutes to closest restaurant"] ?? "-"}</p>
+
+      <p><strong>Shops nearby:</strong> ${i["# shops nearby"] ?? "-"}</p>
+      <p><strong>Parks nearby:</strong> ${i["# parks nearby"] ?? "-"}</p>
+
+      <hr/>
+
+      <h3>Transit & Essentials</h3>
+
+      <p><strong>Minutes to nearest bus stop:</strong> ${i["# minutes to nearest bus stop"] ?? "-"}</p>
+      <p><strong>Minutes to nearest T-station:</strong> ${i["# minutes to nearest T-station"] ?? "-"}</p>
+
+      <p><strong>Minutes to closest drugstore:</strong> ${i["# minutes to closest drugstore"] ?? "-"}</p>
+      <p><strong>Minutes to closest urgent care:</strong> ${i["# minutes to closest urgent care"] ?? "-"}</p>
+
+    </div>
+  `;
+
+  modal.classList.remove("hidden");
+  document.body.style.overflow = "hidden";
+}
 // =============================================================
 // TRAINING MEAN INITIALIZATION
 // =============================================================
@@ -11,29 +125,49 @@ async function loadFeatureMeans() {
     const res = await fetch("http://localhost:8000/feature-means");
     FEATURE_MEANS = await res.json();
 
-    // apply to recommend form
     setDefaults();
   } catch (err) {
     console.warn("Could not load feature means:", err);
   }
 }
+
+// =============================================================
+// DEFAULT POPULATION (UPDATED RULES)
+// =============================================================
+// ONLY fills:
+//   - cafes / restaurants / shops / parks
+//   - all "minutes_to_*"
+// DOES NOT fill:
+//   - bedrooms
+//   - bathrooms
+//   - cats/dogs
+// =============================================================
 function setDefaults() {
+
   const set = (id, val) => {
     const el = document.getElementById(id);
-    if (el && val != null) el.value = Math.round(val);
+    if (!el || val == null) return;
+    el.value = Math.round(val);
   };
 
-  set("bedrooms", FEATURE_MEANS["# Bedrooms"]);
-  set("bathrooms", FEATURE_MEANS["# Bathrooms"]);
+  // ---------------------------
+  // DO NOT TOUCH (intentionally empty)
+  // ---------------------------
+  // bedrooms, bathrooms, cats, dogs → user input only
 
+  // ---------------------------
+  // LIFESTYLE COUNTS
+  // ---------------------------
   set("cafes_nearby", FEATURE_MEANS["# cafes nearby"]);
-  set("minutes_to_closest_cafe", FEATURE_MEANS["# minutes to closest cafe"]);
-
   set("restaurants_nearby", FEATURE_MEANS["# restaurants nearby"]);
-  set("minutes_to_closest_restaurant", FEATURE_MEANS["# minutes to closest restaurant"]);
-
   set("shops_nearby", FEATURE_MEANS["# shops nearby"]);
   set("parks_nearby", FEATURE_MEANS["# parks nearby"]);
+
+  // ---------------------------
+  // TRAVEL TIMES
+  // ---------------------------
+  set("minutes_to_closest_cafe", FEATURE_MEANS["# minutes to closest cafe"]);
+  set("minutes_to_closest_restaurant", FEATURE_MEANS["# minutes to closest restaurant"]);
 
   set("minutes_to_nearest_bus_stop", FEATURE_MEANS["# minutes to nearest bus stop"]);
   set("minutes_to_nearest_t_station", FEATURE_MEANS["# minutes to nearest T-station"]);
@@ -41,6 +175,7 @@ function setDefaults() {
   set("minutes_to_closest_drugstore", FEATURE_MEANS["# minutes to closest drugstore"]);
   set("minutes_to_closest_urgent_care", FEATURE_MEANS["# minutes to closest urgent care"]);
 }
+
 // =============================================================
 // CONFIG
 // =============================================================
@@ -52,30 +187,47 @@ const GEO_URL = "https://nominatim.openstreetmap.org/search";
 // DOM
 // =============================================================
 
-// tabs
 const recommendTab = document.getElementById("tab-recommend");
 const predictTab = document.getElementById("tab-predict");
 
 const recommendPanel = document.getElementById("recommend-panel");
 const predictPanel = document.getElementById("predict-panel");
 
-// forms
 const form = document.getElementById("search-form");
 const predictForm = document.getElementById("predict-form");
 
-// status
 const statusEl = document.getElementById("form-status");
 const predictStatus = document.getElementById("predict-status");
 
-// results
 const grid = document.getElementById("results-grid");
 const empty = document.getElementById("results-empty");
 const loading = document.getElementById("results-loading");
 const error = document.getElementById("results-error");
 
-// modal
 const modal = document.getElementById("detail-modal");
 const modalBody = document.getElementById("modal-body");
+// =============================================================
+// MODAL CLOSE FIX (ADD THIS)
+// =============================================================
+
+// close when clicking backdrop OR any element with data-close-modal
+modal.addEventListener("click", (e) => {
+  if (e.target.matches("[data-close-modal]")) {
+    closeModal();
+  }
+});
+
+// ESC key support
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    closeModal();
+  }
+});
+
+function closeModal() {
+  modal.classList.add("hidden");
+  document.body.style.overflow = "";
+}
 
 // =============================================================
 // TAB SWITCH
@@ -214,7 +366,7 @@ form.addEventListener("submit", async (e) => {
 });
 
 // =============================================================
-// PREDICT FLOW (FIXED CLEANLY)
+// PREDICT FLOW (UNCHANGED)
 // =============================================================
 predictForm.addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -274,74 +426,9 @@ predictForm.addEventListener("submit", async (e) => {
 });
 
 // =============================================================
-// RENDER
+// INIT
 // =============================================================
-function render(items) {
-  grid.innerHTML = "";
-
-  items.forEach(i => {
-    const div = document.createElement("div");
-    div.className = "card";
-
-    const imageUrl = makeImageUrl(i.Address, i.rank);
-
-    div.innerHTML = `
-      <div style="position:relative;">
-        <img src="${imageUrl}" style="width:100%;height:180px;object-fit:cover;border-radius:10px;" />
-        ${i.rank ? `<span style="position:absolute;top:8px;left:8px;background:black;color:white;padding:4px 8px;border-radius:6px;">#${i.rank}</span>` : ""}
-      </div>
-      <h3>${i.Address}</h3>
-      <p>${i.City}</p>
-      <p>${i["# Bedrooms"]} bd / ${i["# Bathrooms"]} ba</p>
-      <p>$${i["Price per apartment"]}</p>
-    `;
-
-    div.addEventListener("click", () => openDetail(i));
-
-    grid.appendChild(div);
-  });
-}
-
-// =============================================================
-// DETAIL MODAL (IMPROVED)
-// =============================================================
-function openDetail(i) {
-  modalBody.innerHTML = `
-    <div style="display:flex;flex-direction:column;gap:10px;">
-      <h2>${i.Address}</h2>
-
-      <p><strong>City:</strong> ${i.City}</p>
-      <p><strong>Coordinates:</strong> ${i.Coordinates ?? "—"}</p>
-
-      <hr/>
-
-      <p><strong>Bedrooms:</strong> ${i["# Bedrooms"]}</p>
-      <p><strong>Bathrooms:</strong> ${i["# Bathrooms"]}</p>
-
-      <p><strong>Price:</strong> $${i["Price per apartment"]}</p>
-      <p><strong>Price / bedroom:</strong> ${i["Price per bedroom"] ?? "—"}</p>
-
-      <hr/>
-
-      <p><strong>Cats ok:</strong> ${i["Cats ok"] ? "Yes" : "No"}</p>
-      <p><strong>Dogs ok:</strong> ${i["Dogs ok"] ? "Yes" : "No"}</p>
-    </div>
-  `;
-
-  modal.classList.remove("hidden");
-  document.body.style.overflow = "hidden";
-}
-
-// close modal
-modal.addEventListener("click", (e) => {
-  if (e.target.dataset.closeModal !== undefined) {
-    modal.classList.add("hidden");
-    document.body.style.overflow = "";
-  }
-});
-
-// init
-// init
 setState("empty");
 loadFeatureMeans();
+
 });

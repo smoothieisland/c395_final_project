@@ -31,6 +31,7 @@
 
   <form id="search-form" class="search-form">
 
+    <!-- LOCATION -->
     <fieldset class="form-section">
       <legend>Location</legend>
 
@@ -45,37 +46,52 @@
       </label>
     </fieldset>
 
+    <!-- FILTERS -->
     <fieldset class="form-section">
-      <legend>Size</legend>
+      <legend>Filters</legend>
 
-      <label>Min Bedrooms <input type="number" id="min_bedrooms" value="1"></label>
-      <label>Max Bedrooms <input type="number" id="max_bedrooms" value="3"></label>
+      <label>Min Bedrooms <input type="number" id="min_bedrooms"></label>
+      <label>Max Bedrooms <input type="number" id="max_bedrooms"></label>
 
-      <label>Min Bathrooms <input type="number" id="min_bathrooms" value="1"></label>
-      <label>Max Bathrooms <input type="number" id="max_bathrooms" value="2"></label>
-
-      <label>Preferred Bedrooms <input type="number" id="bedrooms" value="2"></label>
-      <label>Preferred Bathrooms <input type="number" id="bathrooms" value="1"></label>
-    </fieldset>
-
-    <fieldset class="form-section">
-      <legend>Pets</legend>
+      <label>Min Bathrooms <input type="number" id="min_bathrooms"></label>
+      <label>Max Bathrooms <input type="number" id="max_bathrooms"></label>
 
       <label><input type="checkbox" id="require_cats_ok"> Cats allowed</label>
       <label><input type="checkbox" id="require_dogs_ok"> Dogs allowed</label>
     </fieldset>
 
+    <!-- UNIT PREFERENCES -->
     <fieldset class="form-section">
-      <legend>Lifestyle</legend>
+      <legend>Unit Preferences</legend>
 
-      <label>Cafés <input type="number" id="cafes_nearby" value="5"></label>
-      <label>Restaurants <input type="number" id="restaurants_nearby" value="10"></label>
-      <label>Shops <input type="number" id="shops_nearby" value="6"></label>
-      <label>Parks <input type="number" id="parks_nearby" value="2"></label>
+      <label>Bedrooms <input type="number" id="bedrooms"></label>
+      <label>Bathrooms <input type="number" id="bathrooms"></label>
+    </fieldset>
+
+    <!-- NEIGHBORHOOD FEATURES -->
+    <fieldset class="form-section">
+      <legend>Neighborhood Preferences</legend>
+
+      <label>Cafes nearby <input type="number" id="cafes_nearby"></label>
+      <label>Minutes to cafe <input type="number" id="minutes_to_closest_cafe"></label>
+
+      <label>Restaurants nearby <input type="number" id="restaurants_nearby"></label>
+      <label>Minutes to restaurant <input type="number" id="minutes_to_closest_restaurant"></label>
+
+      <label>Shops nearby <input type="number" id="shops_nearby"></label>
+
+      <label>Parks nearby <input type="number" id="parks_nearby"></label>
+
+      <label>Minutes to bus stop <input type="number" id="minutes_to_nearest_bus_stop"></label>
+      <label>Minutes to T-station <input type="number" id="minutes_to_nearest_t_station"></label>
+
+      <label>Minutes to drugstore <input type="number" id="minutes_to_closest_drugstore"></label>
+      <label>Minutes to urgent care <input type="number" id="minutes_to_closest_urgent_care"></label>
     </fieldset>
 
     <button id="search-btn" type="submit">Find 5 matches</button>
     <p id="form-status"></p>
+
   </form>
 </aside>
 
@@ -137,11 +153,19 @@
 
 <!-- MODAL -->
 <div id="detail-modal" class="modal hidden">
+  
+  <!-- BACKDROP (click to close) -->
   <div class="modal__backdrop" data-close-modal></div>
+
+  <!-- CONTENT (click should NOT close) -->
   <div class="modal__content">
-    <button data-close-modal>×</button>
+    
+    <!-- close button -->
+    <button data-close-modal class="modal__close">×</button>
+
     <div id="modal-body"></div>
   </div>
+
 </div>
 
 <script src="script.js"></script>
