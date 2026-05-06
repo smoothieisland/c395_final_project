@@ -1,0 +1,37 @@
+{
+  "filters": {
+    "min_bedrooms": 1,
+    "max_bedrooms": 3,
+    "min_bathrooms": 1,
+    "max_bathrooms": 2,
+    "require_cats_ok": 1,
+    "require_dogs_ok": 0
+  },
+
+  "location": {
+    "latitude": 42.3736,
+    "longitude": -71.1097
+  },
+
+  "features": {
+    "bedrooms": 2,
+    "bathrooms": 1,
+
+    "cats_ok": 1,
+    "dogs_ok": 0,
+
+    "cafes_nearby": 5,
+    "minutes_to_closest_cafe": 3,
+
+    "restaurants_nearby": 10,
+    "minutes_to_closest_restaurant": 4,
+
+    "shops_nearby": 6,
+    "minutes_to_nearest_bus_stop": 2,
+    "minutes_to_nearest_t_station": 8,
+
+    "parks_nearby": 2,
+    "minutes_to_closest_drugstore": 5,
+    "minutes_to_closest_urgent_care": 12
+  }
+}
