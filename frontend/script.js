@@ -1,28 +1,85 @@
 document.addEventListener("DOMContentLoaded", () => {
 
+// =============================================================
+// TRAINING MEAN INITIALIZATION
+// =============================================================
+
+let FEATURE_MEANS = {};
+
+async function loadFeatureMeans() {
+  try {
+    const res = await fetch("http://localhost:8000/feature-means");
+    FEATURE_MEANS = await res.json();
+
+    // apply to recommend form
+    setDefaults();
+  } catch (err) {
+    console.warn("Could not load feature means:", err);
+  }
+}
+function setDefaults() {
+  const set = (id, val) => {
+    const el = document.getElementById(id);
+    if (el && val != null) el.value = Math.round(val);
+  };
+
+  set("bedrooms", FEATURE_MEANS["# Bedrooms"]);
+  set("bathrooms", FEATURE_MEANS["# Bathrooms"]);
+
+  set("cafes_nearby", FEATURE_MEANS["# cafes nearby"]);
+  set("minutes_to_closest_cafe", FEATURE_MEANS["# minutes to closest cafe"]);
+
+  set("restaurants_nearby", FEATURE_MEANS["# restaurants nearby"]);
+  set("minutes_to_closest_restaurant", FEATURE_MEANS["# minutes to closest restaurant"]);
+
+  set("shops_nearby", FEATURE_MEANS["# shops nearby"]);
+  set("parks_nearby", FEATURE_MEANS["# parks nearby"]);
+
+  set("minutes_to_nearest_bus_stop", FEATURE_MEANS["# minutes to nearest bus stop"]);
+  set("minutes_to_nearest_t_station", FEATURE_MEANS["# minutes to nearest T-station"]);
+
+  set("minutes_to_closest_drugstore", FEATURE_MEANS["# minutes to closest drugstore"]);
+  set("minutes_to_closest_urgent_care", FEATURE_MEANS["# minutes to closest urgent care"]);
+}
+// =============================================================
+// CONFIG
+// =============================================================
 const API_RECOMMEND = "http://localhost:8000/recommend";
 const API_PREDICT   = "http://localhost:8000/predict";
 const GEO_URL = "https://nominatim.openstreetmap.org/search";
 
-// ================= DOM =================
+// =============================================================
+// DOM
+// =============================================================
+
+// tabs
 const recommendTab = document.getElementById("tab-recommend");
 const predictTab = document.getElementById("tab-predict");
 
 const recommendPanel = document.getElementById("recommend-panel");
 const predictPanel = document.getElementById("predict-panel");
 
+// forms
 const form = document.getElementById("search-form");
 const predictForm = document.getElementById("predict-form");
 
+// status
 const statusEl = document.getElementById("form-status");
 const predictStatus = document.getElementById("predict-status");
 
+// results
 const grid = document.getElementById("results-grid");
 const empty = document.getElementById("results-empty");
 const loading = document.getElementById("results-loading");
 const error = document.getElementById("results-error");
 
-// ================= TAB SWITCH =================
+// modal
+const modal = document.getElementById("detail-modal");
+const modalBody = document.getElementById("modal-body");
+
+// =============================================================
+// TAB SWITCH
+// =============================================================
 recommendTab.onclick = () => {
   recommendTab.classList.add("active");
   predictTab.classList.remove("active");
@@ -39,7 +96,9 @@ predictTab.onclick = () => {
   recommendPanel.classList.add("hidden");
 };
 
-// ================= UI STATE =================
+// =============================================================
+// UI STATE
+// =============================================================
 function setState(state) {
   empty.classList.toggle("hidden", state !== "empty");
   loading.classList.toggle("hidden", state !== "loading");
@@ -47,19 +106,42 @@ function setState(state) {
   grid.classList.toggle("hidden", state !== "results");
 }
 
+// =============================================================
+// HELPERS
+// =============================================================
+const num = (id) => Number(document.getElementById(id)?.value || 0);
+const bool01 = (id) => document.getElementById(id)?.checked ? 1 : 0;
+
 function makeImageUrl(address, rank) {
   const seed = encodeURIComponent(`vibeme-${rank ?? ""}-${address ?? "addr"}`);
   return `https://picsum.photos/seed/${seed}/640/480`;
 }
 
-// ================= SAFE INPUT HELPERS =================
-const num = (id) =>
-  Number(document.getElementById(id)?.value ?? 0);
+// =============================================================
+// GEO
+// =============================================================
+async function geocode(city, zip) {
+  const url = new URL(GEO_URL);
+  url.searchParams.set("format", "json");
+  url.searchParams.set("city", city);
+  url.searchParams.set("postalcode", zip);
 
-const bool01 = (id) =>
-  document.getElementById(id)?.checked ? 1 : 0;
+  const res = await fetch(url);
+  const data = await res.json();
 
-// ================= FULL 14-FEATURE VECTOR =================
+  if (!data.length) {
+    return { latitude: 42.3736, longitude: -71.1097 };
+  }
+
+  return {
+    latitude: parseFloat(data[0].lat),
+    longitude: parseFloat(data[0].lon)
+  };
+}
+
+// =============================================================
+// RECOMMEND FEATURES
+// =============================================================
 function buildFeatures() {
   return {
     bedrooms: num("bedrooms"),
@@ -69,25 +151,21 @@ function buildFeatures() {
     dogs_ok: bool01("require_dogs_ok"),
 
     cafes_nearby: num("cafes_nearby"),
-    minutes_to_closest_cafe: num("minutes_to_closest_cafe"),
-
     restaurants_nearby: num("restaurants_nearby"),
-    minutes_to_closest_restaurant: num("minutes_to_closest_restaurant"),
-
     shops_nearby: num("shops_nearby"),
-
     parks_nearby: num("parks_nearby"),
 
+    minutes_to_closest_cafe: num("minutes_to_closest_cafe"),
+    minutes_to_closest_restaurant: num("minutes_to_closest_restaurant"),
     minutes_to_nearest_bus_stop: num("minutes_to_nearest_bus_stop"),
     minutes_to_nearest_t_station: num("minutes_to_nearest_t_station"),
-
     minutes_to_closest_drugstore: num("minutes_to_closest_drugstore"),
     minutes_to_closest_urgent_care: num("minutes_to_closest_urgent_care")
   };
 }
 
 // =============================================================
-// RECOMMENDATION FLOW
+// RECOMMEND FLOW
 // =============================================================
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -136,7 +214,7 @@ form.addEventListener("submit", async (e) => {
 });
 
 // =============================================================
-// PREDICT FLOW (STRICT 14-FEATURE INPUT)
+// PREDICT FLOW (FIXED CLEANLY)
 // =============================================================
 predictForm.addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -151,21 +229,19 @@ predictForm.addEventListener("submit", async (e) => {
         cats_ok: bool01("p-cats"),
         dogs_ok: bool01("p-dogs"),
 
-        // FULL FEATURE VECTOR (must match backend model exactly)
-        cafes_nearby: num("cafes_nearby"),
-        minutes_to_closest_cafe: num("minutes_to_closest_cafe"),
+        cafes_nearby: num("p_cafes_nearby"),
+        minutes_to_closest_cafe: num("p_minutes_to_closest_cafe"),
 
-        restaurants_nearby: num("restaurants_nearby"),
-        minutes_to_closest_restaurant: num("minutes_to_closest_restaurant"),
+        restaurants_nearby: num("p_restaurants_nearby"),
+        minutes_to_closest_restaurant: num("p_minutes_to_closest_restaurant"),
 
-        shops_nearby: num("shops_nearby"),
-        parks_nearby: num("parks_nearby"),
+        shops_nearby: num("p_shops_nearby"),
+        parks_nearby: num("p_parks_nearby"),
 
-        minutes_to_nearest_bus_stop: num("minutes_to_nearest_bus_stop"),
-        minutes_to_nearest_t_station: num("minutes_to_nearest_t_station"),
-
-        minutes_to_closest_drugstore: num("minutes_to_closest_drugstore"),
-        minutes_to_closest_urgent_care: num("minutes_to_closest_urgent_care")
+        minutes_to_nearest_bus_stop: num("p_minutes_to_nearest_bus_stop"),
+        minutes_to_nearest_t_station: num("p_minutes_to_nearest_t_station"),
+        minutes_to_closest_drugstore: num("p_minutes_to_closest_drugstore"),
+        minutes_to_closest_urgent_care: num("p_minutes_to_closest_urgent_care")
       }
     };
 
@@ -198,29 +274,7 @@ predictForm.addEventListener("submit", async (e) => {
 });
 
 // =============================================================
-// GEO (safe fallback added)
-// =============================================================
-async function geocode(city, zip) {
-  const url = new URL(GEO_URL);
-  url.searchParams.set("format", "json");
-  url.searchParams.set("city", city);
-  url.searchParams.set("postalcode", zip);
-
-  const res = await fetch(url);
-  const data = await res.json();
-
-  if (!data.length) {
-    return { latitude: 42.3736, longitude: -71.1097 }; // fallback (Cambridge)
-  }
-
-  return {
-    latitude: parseFloat(data[0].lat),
-    longitude: parseFloat(data[0].lon)
-  };
-}
-
-// =============================================================
-// RENDER RESULTS
+// RENDER
 // =============================================================
 function render(items) {
   grid.innerHTML = "";
@@ -233,26 +287,61 @@ function render(items) {
 
     div.innerHTML = `
       <div style="position:relative;">
-        <img 
-          src="${imageUrl}" 
-          alt="Apartment photo"
-          style="width:100%;height:180px;object-fit:cover;border-radius:10px;"
-          onerror="this.src='https://picsum.photos/seed/fallback/640/480'"
-        />
-        ${i.rank ? `<span style="position:absolute;top:8px;left:8px;background:black;color:white;padding:4px 8px;border-radius:6px;font-size:12px;">#${i.rank}</span>` : ""}
+        <img src="${imageUrl}" style="width:100%;height:180px;object-fit:cover;border-radius:10px;" />
+        ${i.rank ? `<span style="position:absolute;top:8px;left:8px;background:black;color:white;padding:4px 8px;border-radius:6px;">#${i.rank}</span>` : ""}
       </div>
-
       <h3>${i.Address}</h3>
       <p>${i.City}</p>
       <p>${i["# Bedrooms"]} bd / ${i["# Bathrooms"]} ba</p>
       <p>$${i["Price per apartment"]}</p>
     `;
 
+    div.addEventListener("click", () => openDetail(i));
+
     grid.appendChild(div);
   });
 }
 
+// =============================================================
+// DETAIL MODAL (IMPROVED)
+// =============================================================
+function openDetail(i) {
+  modalBody.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <h2>${i.Address}</h2>
+
+      <p><strong>City:</strong> ${i.City}</p>
+      <p><strong>Coordinates:</strong> ${i.Coordinates ?? "—"}</p>
+
+      <hr/>
+
+      <p><strong>Bedrooms:</strong> ${i["# Bedrooms"]}</p>
+      <p><strong>Bathrooms:</strong> ${i["# Bathrooms"]}</p>
+
+      <p><strong>Price:</strong> $${i["Price per apartment"]}</p>
+      <p><strong>Price / bedroom:</strong> ${i["Price per bedroom"] ?? "—"}</p>
+
+      <hr/>
+
+      <p><strong>Cats ok:</strong> ${i["Cats ok"] ? "Yes" : "No"}</p>
+      <p><strong>Dogs ok:</strong> ${i["Dogs ok"] ? "Yes" : "No"}</p>
+    </div>
+  `;
+
+  modal.classList.remove("hidden");
+  document.body.style.overflow = "hidden";
+}
+
+// close modal
+modal.addEventListener("click", (e) => {
+  if (e.target.dataset.closeModal !== undefined) {
+    modal.classList.add("hidden");
+    document.body.style.overflow = "";
+  }
+});
+
+// init
 // init
 setState("empty");
-
+loadFeatureMeans();
 });

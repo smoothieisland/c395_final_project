@@ -5,6 +5,7 @@ import joblib
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from utils import FEATURE_COLS
 
 from model import PriceModel
 from recommend import (
@@ -122,23 +123,27 @@ def apply_filters(df, filters):
 # -----------------------
 # PRICE PREDICTION
 # -----------------------
+FEATURE_MAP = {
+    "# Bedrooms": "bedrooms",
+    "# Bathrooms": "bathrooms",
+    "Cats ok": "cats_ok",
+    "Dogs ok": "dogs_ok",
+    "# cafes nearby": "cafes_nearby",
+    "# minutes to closest cafe": "minutes_to_closest_cafe",
+    "# restaurants nearby": "restaurants_nearby",
+    "# minutes to closest restaurant": "minutes_to_closest_restaurant",
+    "# shops nearby": "shops_nearby",
+    "# minutes to nearest bus stop": "minutes_to_nearest_bus_stop",
+    "# minutes to nearest T-station": "minutes_to_nearest_t_station",
+    "# parks nearby": "parks_nearby",
+    "# minutes to closest drugstore": "minutes_to_closest_drugstore",
+    "# minutes to closest urgent care": "minutes_to_closest_urgent_care"
+}
 def predict_price(user_features, model, scaler, target_scaler):
 
     x = np.array([[
-        user_features["bedrooms"],
-        user_features["bathrooms"],
-        user_features["cats_ok"],
-        user_features["dogs_ok"],
-        user_features["cafes_nearby"],
-        user_features["minutes_to_closest_cafe"],
-        user_features["restaurants_nearby"],
-        user_features["minutes_to_closest_restaurant"],
-        user_features["shops_nearby"],
-        user_features["minutes_to_nearest_bus_stop"],
-        user_features["minutes_to_nearest_t_station"],
-        user_features["parks_nearby"],
-        user_features["minutes_to_closest_drugstore"],
-        user_features["minutes_to_closest_urgent_care"]
+        user_features[FEATURE_MAP[col]]
+        for col in FEATURE_COLS
     ]])
 
     x_scaled = scaler.transform(x)
@@ -147,7 +152,6 @@ def predict_price(user_features, model, scaler, target_scaler):
     with torch.no_grad():
         pred = model(x_tensor).numpy()[0]
 
-    # inverse scaling
     price = pred * target_scaler["std"] + target_scaler["mean"]
 
     return float(price)
@@ -240,3 +244,12 @@ def recommend(payload: dict):
 @app.post("/predict")
 def predict(payload: dict):
     return handle_request(payload)
+
+@app.get("/feature-means")
+def feature_means():
+    means = {}
+
+    for col in FEATURE_COLS:
+        means[col] = float(df[col].mean())
+
+    return JSONResponse(content=means)
